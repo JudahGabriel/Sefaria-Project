@@ -4,10 +4,12 @@ from django.contrib import admin
 from sefaria.settings import ADMIN_PATH
 import reader.views as reader_views
 import sourcesheets.views as sheets_views
+import remote_config.views as remote_config_views
 import api.views as api_views
 import sefaria.views as sefaria_views
 import sefaria.gauth.views as gauth_views
 import guides.views as guides_views
+from sefaria.heapdump import heapdump_view
 from sefaria.site.urls import site_urlpatterns
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -38,6 +40,7 @@ shared_patterns = [
     url(r'^api/profile/user_history$', reader_views.user_history_api),
     url(r'^api/profile/sync$', reader_views.profile_sync_api),
     url(r'^api/profile/upload-photo$', reader_views.profile_upload_photo),
+    url(r'^api/profile/experiments/opt-in$', reader_views.experiments_opt_in_api),
     url(r'^api/profile$', reader_views.profile_api),
     url(r'^api/profile/(?P<slug>[^/]+)$', reader_views.profile_api),
     url(r'^api/profile/(?P<slug>[^/]+)/(?P<ftype>followers|following)$', reader_views.profile_follow_api),
@@ -85,6 +88,7 @@ shared_patterns = [
     url(r'^api/link-summary/(?P<ref>.+)$', reader_views.link_summary_api),
     url(r'^api/notes/all$', reader_views.all_notes_api),
     url(r'^api/notes/(?P<note_id_or_ref>.*)$', reader_views.notes_api),
+    url(r'^api/related/(?P<tref>.+)/websites$', reader_views.websites_api),
     url(r'^api/related/(?P<tref>.*)$', reader_views.related_api),
     url(r'^api/counts/links/(?P<cat1>.+)/(?P<cat2>.+)$', reader_views.link_count_api),
     url(r'^api/counts/words/(?P<title>.+)/(?P<version>.+)/(?P<language>.+)$', reader_views.word_count_api),
@@ -163,6 +167,7 @@ shared_patterns = [
 
     url(r'^api/(?P<action>(block|unblock))/(?P<uid>\d+)$', reader_views.block_api),
 
+    url(r'^api/authors/(?P<author_slug>[^/]+)/indexes/?$', reader_views.author_indexes_api),
     url(r'^api/topics$', reader_views.topics_list_api),
     url(r'^api/topics/generate-prompts/(?P<slug>.+)$', reader_views.generate_topic_prompts_api),
     url(r'^api/topics-graph/(?P<topic>.+)$', reader_views.topic_graph_api),
@@ -204,6 +209,9 @@ shared_patterns = [
     url(r'^api/subscribe/(?P<email>.+)$', sefaria_views.subscribe_sefaria_newsletter_view),
     url(r'^api/newsletter_mailing_lists/?$', sefaria_views.get_available_newsletter_mailing_lists),
 
+    url(r'^api/strapi/graphql-cache$', sefaria_views.strapi_graphql_cache),
+    url(r'^api/strapi/cache-invalidate$', sefaria_views.strapi_cache_invalidate),
+
     url(r'^api/stats/library-stats', sefaria_views.library_stats),
     url(r'^api/stats/core-link-stats', sefaria_views.core_link_stats),
 
@@ -226,9 +234,7 @@ shared_patterns = [
     url(r'^api/bulktext/(?P<refs>.+)$', sefaria_views.bulktext_api),
     url(r'^api/text-upload$', sefaria_views.text_upload_api),
     url(r'^api/linker-track$', sefaria_views.linker_tracking_api),
-
     url(r'^api/guides/(?P<guide_key>[^/]+)$', guides_views.guides_api),
-
     url(r'^admin/reset/varnish/(?P<tref>.+)$', sefaria_views.reset_varnish),
     url(r'^admin/reset/cache$', sefaria_views.reset_cache),
     url(r'^admin/reset/cache/(?P<title>.+)$', sefaria_views.reset_index_cache_for_text),
@@ -248,6 +254,8 @@ shared_patterns = [
     url(r'^admin/rebuild/shared-cache', sefaria_views.rebuild_shared_cache),
     url(r'^admin/delete/citation-links/(?P<title>.+)$', sefaria_views.delete_citation_links),
     url(r'^admin/cache/stats', sefaria_views.cache_stats),
+    url(r'^admin/memory/summary', sefaria_views.memory_summary),
+    url(r'^admin/heapdump/$', heapdump_view, name="heapdump"),
     url(r'^admin/cache/dump', sefaria_views.cache_dump),
     url(r'^admin/run/tests', sefaria_views.run_tests),
     url(r'^admin/export/all', sefaria_views.export_all),
@@ -266,8 +274,9 @@ shared_patterns = [
     url(r'^admin/descriptions/categories/update', sefaria_views.update_categories_from_sheet),
     url(r'^admin/descriptions/texts/update', sefaria_views.update_texts_from_sheet),
     re_path(r'{ADMIN_PATH}/?', admin.site.urls),
-
     url(r'^(?P<tref>[^/]+)/(?P<lang>\w\w)/(?P<version>.*)$', reader_views.old_versions_redirect),
+    url(r'^api/remote-config/?$', remote_config_views.remote_config_values, name="remote_config_api"),
+    url(r'^api/async/(?P<task_id>.+)$', sefaria_views.async_task_status_api),
 ]
 
 shared_patterns += site_urlpatterns

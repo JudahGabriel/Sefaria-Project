@@ -10,7 +10,7 @@ from django.utils.translation import ugettext as _, ungettext_lazy
 from random import randint
 
 from sefaria.system.exceptions import InputError, SheetNotFoundError
-from sefaria.constants.model import LIBRARY_MODULE
+from sefaria.constants.model import VOICES_MODULE
 from functools import reduce
 
 if not hasattr(sys, '_doc_build'):
@@ -396,6 +396,7 @@ class UserProfile(object):
 
         # Fundraising
         self.is_sustainer = False
+        self.experiments = False
 
         # Update with saved profile doc in MongoDB
         profile = db.profiles.find_one({"id": id})
@@ -501,7 +502,8 @@ class UserProfile(object):
         if self._id:
             db.profiles.replace_one({'_id': self._id}, d, upsert=True)
         else:
-            db.profiles.insert_one(d)
+            inserted = db.profiles.insert_one(d)
+            self._id = inserted.inserted_id
 
         # store name changes on Django User object
         if self._name_updated:
@@ -592,11 +594,11 @@ class UserProfile(object):
         """Returns true if this user is followed by uid"""
         return uid in self.followers.uids
 
-    def recent_notifications(self, scope=LIBRARY_MODULE):
+    def recent_notifications(self, scope=VOICES_MODULE):
         from sefaria.model.notification import NotificationSet
         return NotificationSet().recent_for_user(self.id, scope=scope)
 
-    def unread_notification_count(self, scope=LIBRARY_MODULE):
+    def unread_notification_count(self, scope=VOICES_MODULE):
         # TODO: Why do we not need to scope the notifications to the module here?
         from sefaria.model.notification import NotificationSet
         return NotificationSet().unread_for_user(self.id, scope=scope).count()
@@ -665,6 +667,7 @@ class UserProfile(object):
             "version_preferences_by_corpus": self.version_preferences_by_corpus,
             "attr_time_stamps":      self.attr_time_stamps,
             "is_sustainer":          self.is_sustainer,
+            "experiments":           self.experiments,
             "tag_order":             getattr(self, "tag_order", None),
             "last_sync_web":         self.last_sync_web,
             "profile_pic_url":       self.profile_pic_url,
@@ -705,6 +708,7 @@ class UserProfile(object):
         other_info = {
             "pinned_sheets":         self.pinned_sheets,
             "is_sustainer":          self.is_sustainer,
+            "experiments":           self.experiments,
         }
         dictionary.update(other_info)
         return dictionary

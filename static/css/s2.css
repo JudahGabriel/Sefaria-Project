@@ -55,35 +55,9 @@ a, a:hover {
   --sans-serif-small-font-size: 14px;
 }
 
-/* Font Family */
-body, .sans-serif {
-  --english-font: var(--english-sans-serif-font-family);
-  --hebrew-font: var(--hebrew-sans-serif-font-family);
-  --is-serif: initial; /* false */
-}
-.serif {
-  --english-font: var(--english-serif-font-family);
-  --hebrew-font: var(--hebrew-serif-font-family);
-  --is-serif: ; /* true */
-}
-.sans-serif-in-hebrew {
-  --english-font: var(--english-serif-font-family);
-  --hebrew-font: var(--hebrew-sans-serif-font-family);
-}
-body, .en, .int-en, .englishWithinHebrew {
-  --is-hebrew: initial; /* false */
-}
-.he, .int-he {
-  unicode-bidi: plaintext;
-  --is-hebrew: ; /* true */
-}
-* {
-  --hebrew-font-conditional: var(--is-hebrew) var(--hebrew-font);
-  font-family: var(--hebrew-font-conditional, var(--english-font));
-}
-
 .sr-only,
-.layout-button label {
+.layout-button .int-en,
+.layout-button .int-he {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -278,6 +252,15 @@ Legacy Style Guide Font Hierarchy -- the below should be refactored away in favo
   z-index: 1000;
   height: 60px;
 }
+
+/* lc-chatbot docked mode conflicts with readerApp so pointer-events are disabled for the readerApp and enabled for the main content */
+#s2.headerOnly .readerApp {
+  pointer-events: none;
+}
+#s2.headerOnly .readerApp > *:not(#main), #s2.headerOnly #main lc-chatbot {
+  pointer-events: auto;
+}
+
 #readerAppWrap {
   display: flex;
   flex-direction: column;
@@ -364,14 +347,92 @@ body.hasBannerMessage #s2.headerOnly {
     font-size: 13px;
   }
 }
+.siteWideBanner {
+  height: auto;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  margin-top: 60px;
+  transition: .5s;
+  padding: 10px;
+  border-bottom: 1px solid lightgrey;
+  background-color: #f7f7f7;
+}
+.siteWideBanner.hidden {
+  height: 0;
+  overflow: hidden;
+  margin-top: 0;
+  padding: 0;
+}
+.interface-hebrew .siteWideBanner {
+  direction: rtl;
+}
+.siteWideBanner .siteWideBannerContent {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  color: black;
+  border: 1px solid #d2dcff;
+  border-radius: 10px;
+  padding: 20px;
+  background: #f0f7ff;
+}
+.siteWideBanner .siteWideBannerTextBox {
+  flex: 1;
+}
+.siteWideBanner .bannerMainText {
+  font-weight: 600;
+}
+.siteWideBanner .bannerSecondaryText {
+  display: block;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+.siteWideBanner .siteWideBannerButtonBox {
+  display: flex;
+  gap: 20px;
+  margin-inline-start: 50px;
+}
+.siteWideBanner .siteWideBannerClose {
+  margin-inline-start: 70px;
+  color: black;
+  font-size: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.siteWideBanner .bannerLearnMore {
+  margin-inline-start: 20px;
+  white-space: nowrap;
+}
 .noOverflowX {
   overflow-x: hidden;
 }
 .readerApp {
   display: flex;
+  flex-direction: column;
   flex: 1;
   position: relative;
 }
+
+#main {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+#main .panelContainer {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
 .noselect {
   user-select: none;
 }
@@ -399,6 +460,10 @@ input.noselect {
 }
 .multiPanel #panelWrapBox {
   top: 60px;
+}
+.siteWideBanner ~ #main #panelWrapBox {
+  top: 0;
+  height: 100%;
 }
 #panelWrapBox.wrapBoxScroll {
   overflow-x: scroll;
@@ -659,38 +724,6 @@ a.interfaceLinks-option.active, a.interfaceLinks-option.inactive {
   content: "";
   padding: 0 15px;
 }
-.header .mobile-notifications.mobile-unread::after,
-.header .notifications.unread::after {
-  content:"";
-  background-color: #CB6158;
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
-  display: block;
-  top: 3px;
-  right: 1px;
-  position: absolute;
-}
-
-/* Mobile navigation menu notification styles */
-.mobileNavMenu a.mobile-notifications.mobile-unread::after {
-  content:"";
-  background-color: #CB6158;
-  width: 7px;
-  height: 7px;
-  border-radius: 4px;
-  display: block;
-  top: 20px;
-  position: absolute;
-}
-
-.interface-english .mobileNavMenu a.mobile-notifications.mobile-unread::after {
-  left: 15px;
-}
-
-.interface-hebrew .mobileNavMenu a.mobile-notifications.mobile-unread::after {
-  right: 15px;
-}
 .header .login {
   color: var(--dark-grey);
   display: inline-block;
@@ -738,7 +771,7 @@ a.interfaceLinks-option.active, a.interfaceLinks-option.inactive {
   left: 0;
   right: 0;
   top: 0;
-  z-index: 1001;
+  z-index: 100000; /* Library assistant uses z-index of 9999 */
   opacity: 1;
   transition: opacity .3s ease-in;
 }
@@ -1354,6 +1387,12 @@ a.interfaceLinks-option.active, a.interfaceLinks-option.inactive {
   flex-direction: row;
   align-items: center;
   justify-content: center;
+}
+/* Hide ToC language toggle on narrow screens where mobile header shows its own toggle */
+@media (max-width: 842px) {
+  .navTitle .languageToggle {
+    display: none;
+  }
 }
 .navTitleTab {
   margin-inline-end: 26px;
@@ -3993,6 +4032,16 @@ body .ui-autocomplete.dictionary-toc-autocomplete .ui-menu-item a.ui-state-focus
   max-width: 665px;
 }
 
+.searchTopLineInner {
+  display: flex;
+  justify-content: space-between;
+}
+
+.searchTopLineInner .ai-info-icon {
+  margin-top: 9px;
+  margin-inline-end: 1px;
+}
+
 .searchResultList .topicTitle .int-en, .searchResultList .topicTitle .int-he {
   font-size: 24px;
 }
@@ -4513,29 +4562,12 @@ body .ui-autocomplete.dictionary-toc-autocomplete .ui-menu-item a.ui-state-focus
   border-radius: 0px 0px 6px 4px;
   z-index: 2;
 }
-.singlePanel .autocomplete-dropdown {
-  width: 0;
-  position: fixed;
-  top: 120px;
-  inset-inline-start: 0;
-  padding-bottom: 10px;
-  max-height: calc(100dvh - 120px);
-  overflow-y: auto;
-}
-.singlePanel .autocomplete-dropdown:has(*){
-  width: 100vw;
-}
 .search-group-suggestions{
   border-bottom: 0.766667px solid rgb(204, 204, 204);
   display: flex;
   align-items: start;
   padding-top: 5px;
   padding-bottom: 5px;
-}
-.singlePanel .search-group-suggestions{
-  border-bottom-width: 0;
-  padding-top: 0;
-  padding-bottom: 0;
 }
 .search-group-suggestions-items{
   display: flex;
@@ -4549,17 +4581,6 @@ body .ui-autocomplete.dictionary-toc-autocomplete .ui-menu-item a.ui-state-focus
 }
 .search-suggestion-link-wrapper:hover{
   text-decoration: none;
-}
-.singlePanel .search-suggestion-link-wrapper{
-  border-bottom: 0;
-  padding: 0;
-}
-.singlePanel .search-suggestion-link-wrapper.search-override-wrapper {
-  padding-top: 12px;
-  padding-bottom: 12px;
-  margin-bottom: 16px;
-  border-top: 0.766667px solid #EDEDEC;
-  border-bottom: 0.766667px solid #EDEDEC;
 }
 
 .search-suggestion {
@@ -4577,15 +4598,9 @@ body .ui-autocomplete.dictionary-toc-autocomplete .ui-menu-item a.ui-state-focus
     max-width: 100%;
     min-height: 10px;
 }
-.singlePanel .search-suggestion{
-  width: auto;
-}
 
 .search-suggestion-text{
   font-family: 'EB Garamond';
-}
-.singlePanel .search-suggestion-text{
-  color: #000000;
 }
 .search-suggestion-text.hebrew-result{
   font-family: "Taamey Frank";
@@ -4610,13 +4625,6 @@ body .ui-autocomplete.dictionary-toc-autocomplete .ui-menu-item a.ui-state-focus
   opacity: .4;
   height: 18px;
   width: 18px;
-  margin-top: 2px;
-}
-.singlePanel .autocomplete-dropdown .type-icon{
-  padding-inline-start: 2px;
-}
-
-.singlePanel .autocomplete-dropdown .type-icon.english-result{
   margin-top: 2px;
 }
 
@@ -4656,10 +4664,54 @@ body .ui-autocomplete.dictionary-toc-autocomplete .ui-menu-item a.ui-state-focus
   margin-right: 15px;
   margin-left: 114px;
 }
-.singlePanel .autocomplete-dropdown .type-title {
-  width: 0;
-  visibility: hidden;
-  padding-inline-end: 0;
+
+/* Mobile autocomplete styles */
+@media (max-width: 842px) {
+  .autocomplete-dropdown {
+    width: 0;
+    position: fixed;
+    top: 120px;
+    inset-inline-start: 0;
+    padding-bottom: 10px;
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+  }
+  .autocomplete-dropdown:has(*){
+    width: 100vw;
+  }
+  .search-group-suggestions{
+    border-bottom-width: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .search-suggestion-link-wrapper{
+    border-bottom: 0;
+    padding: 0;
+  }
+  .search-suggestion-link-wrapper.search-override-wrapper {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-top: 0.766667px solid #EDEDEC;
+    border-bottom: 0.766667px solid #EDEDEC;
+  }
+  .search-suggestion{
+    width: auto;
+  }
+  .search-suggestion-text{
+    color: #000000;
+  }
+  .autocomplete-dropdown .type-icon{
+    padding-inline-start: 2px;
+  }
+  .autocomplete-dropdown .type-icon.english-result{
+    margin-top: 2px;
+  }
+  .autocomplete-dropdown .type-title {
+    width: 0;
+    visibility: hidden;
+    padding-inline-end: 0;
+  }
 }
 
 .topic-landing-search-wrapper{
@@ -4745,6 +4797,14 @@ h1.topic-landing-header {
   font-family: Roboto;
   font-size: 14px;
   margin-top: 2px;
+}
+
+.search::placeholder,
+.topic-landing-search-input::placeholder,
+.readerSearch::placeholder,
+.searchFiltersInput::placeholder,
+.topicFilterInput::placeholder {
+  color: var(--dark-grey);
 }
 
 .topic-landing-search-suggestion{
@@ -5147,8 +5207,7 @@ h1.topic-landing-header {
   --hebrew-font: var(--hebrew-sans-serif-font-family);
 }
 .topic-landing-seasonal .seasonal-bottom-section{
-  position: absolute;
-  top: calc(100% - 128px);;
+  margin-top: 10px;
 }
 .singlePanel .topic-landing-seasonal .seasonal-bottom-section{
   position: unset;
@@ -5686,18 +5745,6 @@ big {
 .readerTextTocHeader.readerTextToc {
   font-size: 16px;
 }
-.hebrew .readerControls .readerTextToc {
-  direction: rtl;
-}
-.english .readerControls .readerTextToc {
-  direction: ltr;
-}
-.interface-english .bilingual .readerControls .readerTextToc {
-  direction: ltr;
-}
-.interface-hebrew .bilingual .readerControls .readerTextToc {
-  direction: rtl;
-}
 .interface-hebrew .bilingual .readerControls .readerTextToc .readerTextTocBox.sheetBox,
 .interface-hebrew .english .readerControls .readerTextToc .readerTextTocBox.sheetBox {
   padding-left: 23px;
@@ -6019,7 +6066,6 @@ big {
   direction: ltr;
 }
 .interface-english .readerPanel.rtl .textRange,
-.interface-english .readerPanel.hebrew .textRange,
 .interface-english .readerPanel.hebrew .categoryFilterGroup,
 .interface-english .readerPanel.hebrew .essayGroup,
 .interface-english .readerPanel.hebrew .structToggles,
@@ -6395,18 +6441,18 @@ But not to use a display block directive that might break continuous mode for ot
 .readerPanel .segment .segmentNumber .he {
   text-align: center;
 }
-.readerPanel.english .segment .segmentNumber {
+.readerPanel.ltr .segment .segmentNumber {
   left: -48px;
 }
-.readerPanel.hebrew .segment .segmentNumber,
+.readerPanel.rtl .segment .segmentNumber,
 .readerPanel.bilingual .segment .segmentNumber {
   right: -46px;
 }
-.readerPanel.hebrew .segment .linkCount,
+.readerPanel.rtl .segment .linkCount,
 .readerPanel.bilingual .segment .linkCount {
   left: -48px;
 }
-.readerPanel.english .segment .linkCount {
+.readerPanel.ltr .segment .linkCount {
   right: -46px;
   left: auto;
 }
@@ -6420,21 +6466,21 @@ But not to use a display block directive that might break continuous mode for ot
 .readerPanel.heRight.bilingual .segment .linkCount {
   visibility: hidden;
 }
-.singlePanel .readerPanel.english .segment .segmentNumber {
+.singlePanel .readerPanel.ltr .segment .segmentNumber {
   left: -30px;
 }
-.singlePanel .readerPanel.hebrew .segment .segmentNumber,
+.singlePanel .readerPanel.rtl .segment .segmentNumber,
 .singlePanel .readerPanel.bilingual .segment .segmentNumber {
   right: -30px;
 }
-.singlePanel .readerPanel.english .segment .linkCount {
+.singlePanel .readerPanel.ltr .segment .linkCount {
   right: -30px;
 }
-.singlePanel .readerPanel.hebrew .segment .linkCount,
+.singlePanel .readerPanel.rtl .segment .linkCount,
 .singlePanel .readerPanel.bilingual .segment .linkCount {
   left: -30px;
 }
-.singlePanel .readerPanel.english .sheetItem.segment .linkCount {
+.singlePanel .readerPanel.ltr .sheetItem.segment .linkCount {
   left: auto;
   right: -30px;
 }
@@ -6472,6 +6518,31 @@ But not to use a display block directive that might break continuous mode for ot
 }
 .stacked.bilingual .segment .en .namedEntityLink:hover {
   border-bottom-color: var(--dark-grey);
+}
+.mutc {
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    padding: 0 3px 0 3px;
+    border-top: none;
+    border-bottom: none;
+}
+.mutc.refLink {
+    border-color: #1e88e5;
+}
+.mutc.namedEntityLink {
+    border-color: #8e24aa;
+}
+.mutc.categoryLink {
+    border-color: #fb8c00;
+}
+.mutc.spanSucceeded {
+    background: #e8f5e9;
+}
+.mutc.spanFailed {
+    background: #ffebee;
+}
+.mutc.spanAmbiguous {
+    background: #fff8e1;
 }
 .textRange .actionLinks {
   text-align: right;
@@ -7489,11 +7560,15 @@ But not to use a display block directive that might break continuous mode for ot
   margin-bottom: 0;
   padding-bottom: 0;
 }
+
 .textListTextRangeBox .connection-buttons, .versionsTextList .connection-buttons{
   margin-bottom: 28px;
   display: flex;
   align-items: flex-start;
   align-content: flex-start;
+}
+.textListTextRangeBox .connection-buttons {
+  margin-top: 10px;
 }
 .connection-buttons.access-user .connection-button.delete-link{
   display:none;
@@ -7619,7 +7694,7 @@ But not to use a display block directive that might break continuous mode for ot
   align-self: flex-start;
 }
 
-.toolsButtonContainer.highlighted .experimentLabel {
+.experimentLabel {
   --english-font: var(--english-sans-serif-font-family);
   color: var(--dark-grey);
   font-size: 11px;
@@ -8418,7 +8493,7 @@ But not to use a display block directive that might break continuous mode for ot
   border: none;
 }
 .saveProfileButton{
-  background-color: var(--midrash-green);
+  background-color: var(--sheets-green);
 }
 .button.disabled{
   border: 1px solid var(--light-grey);
@@ -8916,7 +8991,7 @@ a .button:hover {
   margin-block-end: 40px;
 }
 a.sheetAuthorName {
-  color: var(--midrash-green);
+  color: var(--sheets-green);
   --english-font: var(--english-sans-serif-font-family);
   --hebrew-font: var(--hebrew-sans-serif-font-family);
   font-size: 16px;
@@ -9860,9 +9935,7 @@ div.aboutSheetMetadata span:not(:first-child)::before{
   float: right;
 }
 .searchBox .keyboardInputInitiator {
-    width: 22px;
-    height: 20px;
-    padding: 4px 7px 2px;
+    margin: 0 7px 0 0;
     position: initial;
     vertical-align: 0px;
 }
@@ -10198,6 +10271,12 @@ body.user-is-tabbing .dropdownLinks-button img:focus {
   outline-offset: 2px;
 }
 
+/* Show focus outline on dropdown options when using keyboard navigation and listbox has focus */
+body.user-is-tabbing .dropdownList:focus .dropdownOption.focused {
+  outline: 2px solid var(--focus-blue);
+  outline-offset: 2px;
+}
+
 .singlePanel .dropdown .dropdownList {
   max-height: 150px;
 }
@@ -10528,6 +10607,16 @@ body.user-is-tabbing .dropdownLinks-button img:focus {
   border-bottom: solid 1px var(--light-grey);
   --english-font: var(--english-sans-serif-font-family);
   --hebrew-font: var(--hebrew-sans-serif-font-family);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.guideBox .guideHeader .guideHeaderTags {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
 }
 
 .guideBox .guideHeader i {
@@ -10545,6 +10634,7 @@ body.user-is-tabbing .dropdownLinks-button img:focus {
   line-height: 29px;
   color: #000000;
 }
+
 .guideBox .guidePromptBox {
   direction: ltr;
   margin-bottom: 20px;
@@ -10674,7 +10764,7 @@ span.purim-emoji img{
   position: relative;
 }
 .sheetContent .collectionsWidgetDone .button, .sheetContentSidebar .largeFollowButton {
-  background-color: var(--midrash-green);
+  background-color: var(--sheets-green);
 }
 .sheetContentSidebar .largeFollowButton {
   --english-font: var(--english-sans-serif-font-family);
@@ -10833,6 +10923,9 @@ span.purim-emoji img{
   overflow-wrap: break-word;
   word-wrap: break-word;
 }
+.sheetContent .SheetOutsideText.highlight .sheetItem.segment .sourceContentText {
+  margin-bottom: 12px;
+}
 .sheetContent h1,
 #sheet .outside h1,
 .sourceContentText h1 {
@@ -10846,7 +10939,10 @@ span.purim-emoji img{
 .sourceContentText h1 span {
   border-bottom: 4px solid var(--lighter-grey);
 }
-
+.interface-hebrew #aboutCover,
+.interface-hebrew .overlayTextOnSheetsHero {
+  direction: rtl;
+}
 #aboutCover {
   margin-top: -90px;
   height: 240px;
@@ -10894,9 +10990,21 @@ span.purim-emoji img{
   line-height: 18px;
   top: 227px;
 }
+@media screen and (min-width: 801px) and (max-width: 950px) {
+  .overlayTextOnSheetsHero #title {
+    font-size: 40px;
+    top: 115px;
+    line-height: revert;
+  }
+  .overlayTextOnSheetsHero #message {
+    font-size: 22px;
+    top: 175px;
+  }
+}
 @media screen and (max-width: 800px) {
   .overlayTextOnSheetsHero {
-    margin-inline-start: 15%;
+    margin-inline-start: 15px;
+    text-align: start;
   }
   .overlayTextOnSheetsHero #title {
     font-size: 24px;
@@ -10918,7 +11026,7 @@ span.purim-emoji img{
   align-items: flex-end;
   width: 25px;
   height: 25px;
-  background-color: var(--midrash-green);
+  background-color: var(--sheets-green);
   border-radius: 50%;
   color: white;
   font-size: 30px;
@@ -10934,9 +11042,12 @@ span.purim-emoji img{
   padding-block-start: 10px;
   padding-block-end: 10px;
 }
-.SheetMedia .addToSheetButton, .SheetComment .addToSheetButton, .SheetOutsideText .addToSheetButton {
+.SheetMedia .addToSheetButton, .SheetComment .addToSheetButton {
   margin-block-start: -10px;
   margin-block-end: 30px;
+}
+.SheetOutsideText .addToSheetButton {
+  margin-block-end: 12px;
 }
 .sheetContent .addToSheetText {
   --english-font: var(--english-sans-serif-font-family);
@@ -11489,6 +11600,20 @@ background-color: white;
 }
 .cookiesNotification .button {
   margin-inline-start: 12px;
+}
+@media (min-width: 843px) {
+  .cookiesNotification {
+    width: 360px;
+    margin: 10px;
+    padding: 15px;
+    text-align: start;
+    border-radius: 10px;
+    border-top: none;
+  }
+  .cookiesNotification .button {
+    display: block;
+    margin: 10px 0 0 0;
+  }
 }
 .readerMessageBox {
   z-index: 9999;
@@ -12631,7 +12756,7 @@ cursor: pointer;
   width: min-content;
   text-align: center;
   cursor: pointer;
-  background: var(--midrash-green);;
+  background: var(--sheets-green);
   color: white;
   border-radius: 3px;
   margin-inline-start: 15px;
@@ -13365,7 +13490,7 @@ body .homeFeedWrapper.userStats {
   color: var(--dark-grey);
   padding: 20px 0px;
   line-height: 1.5;
-  text-align: start;
+  font-size: 22px;
 }
 .collectionsWidgetCreate,
 .collectionsWidgetDone {
@@ -14613,10 +14738,10 @@ span.ref-link-color-3 {color: blue}
   cursor: pointer;
 }
 .sheetsHomepage .button {
-  background-color: var(--midrash-green);
+  background-color: var(--sheets-green);
 }
 .sheetsHomepage .sheetsHomepageSectionTitle {
-  color: var(--midrash-green);
+  color: var(--sheets-green);
   font-family: 'Roboto', "Helvetica Neue", "Helvetica", sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -15714,6 +15839,5 @@ span.ref-link-color-3 {color: blue}
 .interface-hebrew .guideOverlayFooter {
   direction: rtl;
 }
-
 
 /* ========== GUIDE OVERLAY COMPONENT STYLES - END ========== */

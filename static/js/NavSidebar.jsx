@@ -294,7 +294,7 @@ const getSidebarFooterData = () => [{'he': 'אודות','en': 'About', 'url': `$
                                     {'he': 'יוטיוב','en':'YouTube', 'url':'https://www.youtube.com/user/SefariaProject'},
                                     {'he': 'חנות','en':'Shop', 'url': 'https://store.sefaria.org/'},
                                     {'he': 'אפשרויות תרומה','en':'Ways to Give', 'url': `${Sefaria.getModuleURL(Sefaria.LIBRARY_MODULE).origin}/ways-to-give`},
-                                    {'he': 'תרומות','en':'Donate', 'url': 'https://donate.sefaria.org/give/451346/#!/donation/checkout?c_src=Footer'},
+                                    {'he': 'תרומות','en':'Donate', 'url': Sefaria._v({en: 'https://donate.sefaria.org/give/451346/#!/donation/checkout?c_src=Footer', he: 'https://donate.sefaria.org/give/468442/#!/donation/checkout?c_src=Footer'})},
                                   ];
 
 
@@ -759,7 +759,7 @@ const JoinTheConversation = ({wide}) => {
     <SidebarModule wide={wide}>
       <div className="joinTheConversation">
         <SidebarModuleTitle>Join the Conversation</SidebarModuleTitle>
-        <InterfaceText>Mix and match sources from our library, along with outside sources, comments, images and videos.</InterfaceText>
+        <InterfaceText>Mix and match sources from the Sefaria Library, along with outside sources, images, videos, and your own commentary, to share digitally.</InterfaceText>
       </div>
       <CreateSheetsButton/>
     </SidebarModule>
@@ -843,14 +843,13 @@ const CreateSheetsButton = () => {
   ) 
 }
 const CreateASheet = () => {
-    let enText, heText;
+    let enText;
     if (Sefaria.multiPanel) {
         enText = 'Mix and match sources from the Sefaria Library, along with outside sources, images, videos, and your own commentary, to share digitally.';
-        heText = 'כל דף הוא בגדר לוח חלק, מרחב בו תוכלו לחבר בין הרעיונות שלכם לבין המקורות ולהוסיף מקורות מדיה מגוונים. השתמשו בכלים המוצעים כדי לכתוב מחשבות ותובנות אודות המקורות שבספרייה, להוסיף קטעי וידאו ואודיו, לצטט מהמקורות שבספרייה.';
     } else {
         enText = 'Use a computer to mix and match sources from the Sefaria Library, along with outside sources, images, videos, and your own commentary. The Voices Editor is not supported on mobile devices.';
-        heText = 'כל דף הוא בגדר לוח חלק, מרחב בו תוכלו לחבר בין הרעיונות שלכם לבין המקורות ולהוסיף מיני מדיה מגוונים. לא ניתן ליצור או לערוך דפים באמצעות המכשיר הנייד. על מנת לגשת לעורך הדפים של ספריא, יש להיכנס לאתר האינטרנט ״חיבורים״ במחשב.';
     }
+    const heText = Sefaria._(enText)
     return (
         <TitledText title={{'en': 'Create', 'he': 'יצירת דף מקורי'}}
                     text={{'en': enText,

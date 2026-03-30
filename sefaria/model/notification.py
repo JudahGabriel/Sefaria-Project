@@ -288,8 +288,14 @@ class Notification(abst.AbstractMongoRecord):
 
         def annotate_sheet(n, sheet_id):
             sheet_data = get_sheet_metadata(id=sheet_id)
-            n["content"]["sheet_title"] = strip_tags(sheet_data["title"], remove_new_lines=True)
-            n["content"]["summary"] = sheet_data["summary"]
+            # Sheet may have been deleted since the notification was created;
+            # gracefully degrade rather than raising an AttributeError.
+            if sheet_data is None:
+                n["content"]["sheet_title"] = ""
+                n["content"]["summary"] = ""
+                return
+            n["content"]["sheet_title"] = strip_tags(sheet_data.get("title", ""), remove_new_lines=True)
+            n["content"]["summary"] = sheet_data.get("summary", "")
 
         def annotate_collection(n, collection_slug):
             try:

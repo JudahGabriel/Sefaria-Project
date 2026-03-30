@@ -166,7 +166,7 @@ const DropdownMenu = ({children, buttonComponent, positioningClass, analyticsFea
      * @param {string} positioningClass - CSS class for dropdown positioning. Options: 'headerDropdownMenu', 'readerDropdownMenu' (see s2.css)
      * @param {string} [analyticsFeatureName] - Optional feature name for analytics tracking (sets data-anl-feature_name)
      * @param {Function} [onOpen] - Optional callback fired when dropdown opens
-     * @param {Function} [onClose] - Optional callback fired when dropdown closes
+     * @param {Function} [onClose] - Optional callback fired when dropdown closes. Receives event object: { type: 'passive' | 'active' }
      *
      * Behavior:
      * - Closes on: click outside, Escape key, Tab out, or clicking any item without data-prevent-close="true"
@@ -179,6 +179,8 @@ const DropdownMenu = ({children, buttonComponent, positioningClass, analyticsFea
     const menuRef = useRef(null);
     const wrapperRef = useRef(null);
     const buttonRef = useRef(null);
+    const isOpenRef = useRef(false);
+    isOpenRef.current = isOpen;
 
     const handleButtonClick = (e) => {
       e.stopPropagation();
@@ -187,7 +189,7 @@ const DropdownMenu = ({children, buttonComponent, positioningClass, analyticsFea
         if (curState) {
           onOpen?.();
         } else {
-          onClose?.();
+          onClose?.({ type: 'active' });
         }
         return curState;
       });
@@ -199,13 +201,13 @@ const DropdownMenu = ({children, buttonComponent, positioningClass, analyticsFea
       // Only toggle if no preventClose element was found
       if (!preventClose) {
         setIsOpen(false);
-        onClose?.();
+        onClose?.({ type: 'active' });
       }
     };
     const handleHideDropdown = (event) => {
       if (event.key === 'Escape') {
           setIsOpen(false);
-          onClose?.();
+          onClose?.({ type: 'passive' });
       }
     };
     const handleClickOutside = (event) => {
@@ -213,8 +215,8 @@ const DropdownMenu = ({children, buttonComponent, positioningClass, analyticsFea
             wrapperRef.current &&
             !wrapperRef.current.contains(event.target)
         ) {
+            if (isOpenRef.current) {onClose?.({ type: 'passive' });}
             setIsOpen(false);
-            onClose?.();
         }
     };
 
@@ -236,9 +238,9 @@ const DropdownMenu = ({children, buttonComponent, positioningClass, analyticsFea
     const handleMenuKeyDown = (e) => {
         Util.trapFocusWithTab(e, {
             container: menuRef.current,
-            onClose: () => { 
+            onClose: () => {
               setIsOpen(false)
-              onClose?.();
+              onClose?.(true); // Passive dismissal
             },
             returnFocusRef: buttonRef.current
         });
@@ -250,9 +252,7 @@ const DropdownMenu = ({children, buttonComponent, positioningClass, analyticsFea
              data-anl-feature_name={analyticsFeatureName}>
            <div
              className="dropdownLinks-button"
-             data-anl-event={analyticsFeatureName ? "modswitch_toggle:click" : null}
-             data-anl-from={isOpen ? "closed" : "open"}
-             data-anl-to={isOpen ? "open" : "closed"}
+             data-anl-event={analyticsFeatureName ? (isOpen ? "modswitch_close:click" : "modswitch_open:click") : null}
            >
               {/* 
                 Using React.cloneElement to inject dropdown behavior into the button.

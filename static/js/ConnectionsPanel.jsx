@@ -272,16 +272,17 @@ class ConnectionsPanel extends Component {
     } else if (this.props.mode === "Resources") {
       const summary = Sefaria.linkSummary(this.props.srefs, this.props.nodeRef ? this.props.nodeRef.split(".")[0] : null);
       const showConnectionSummary = summary.length > 0 || Sefaria.hasEssayLinks(this.props.srefs);
+      const webpagesLoaded = Sefaria.webpagesLoaded(this.props.srefs);
       const resourcesButtonCounts = {
         sheets: Sefaria.sheets.sheetsTotalCount(this.props.srefs),
-        webpages: Sefaria.webPagesByRef(this.props.srefs).length,
+        webpages: webpagesLoaded ? Sefaria.webPagesByRef(this.props.srefs).length : null,
         audio: Sefaria.mediaByRef(this.props.srefs).length,
         topics: Sefaria.topicsByRefCount(this.props.srefs) || 0,
         manuscripts: Sefaria.manuscriptsByRef(this.props.srefs).length,
         guides: Sefaria.guidesByRef(this.props.srefs).length,
         translations: this.state.availableTranslations.length, //versions dont come from the related api, so this one looks a bit different than the others.
       }
-      const showResourceButtons = Sefaria.is_moderator || Object.values(resourcesButtonCounts).some(elem => elem > 0);
+      const showResourceButtons = Sefaria.is_moderator || Object.values(resourcesButtonCounts).some(elem => elem > 0 || elem === null);
       const toolsButtonsCounts = {
         notes: Sefaria.notesTotalCount(this.props.srefs),
       }
@@ -683,7 +684,7 @@ const ToolsList = ({ setConnectionsMode, toggleSignUpModal, openComparePanel, co
   // A list of Resources in addition to connection
   return (
     <div className="toolButtonsList">
-      {Sefaria._uid && <ToolsButton en="Add to Sheet" he="הוספה לדף מקורות" image="sheetsplus.svg" onClick={() => setConnectionsMode("Add To Sheet", { "addSource": "mainPanel" })} />}
+      <ToolsButton en="Add to Sheet" he="הוספה לדף מקורות" image="sheetsplus.svg" onClick={() => !Sefaria._uid ? toggleSignUpModal(SignUpModalKind.AddToSheet) : setConnectionsMode("Add To Sheet", { "addSource": "mainPanel" })} />
       <ToolsButton en="Dictionaries" he="מילונים" image="dictionaries.svg" urlConnectionsMode="Lexicon" onClick={() => setConnectionsMode("Lexicon")} />
       {openComparePanel ? <ToolsButton en="Compare Text" he="טקסט להשוואה" image="compare-panel.svg" onClick={openComparePanel} /> : null}
       <ToolsButton en="Notes" he="הערות" image="notes.svg" alwaysShow={true} count={counts["notes"]} urlConnectionsMode="Notes" onClick={() => !Sefaria._uid ? toggleSignUpModal(SignUpModalKind.Notes) : setConnectionsMode("Notes")} />
@@ -899,8 +900,61 @@ const TopicListItem = ({ id, topic, interfaceLang, srefs }) => {
 
 class WebPagesList extends Component {
   // List of web pages for a ref in the sidebar
+  constructor(props) {
+    super(props);
+    this.state = {
+      isLoading: false,
+      loadError: null,
+    };
+  }
+  componentDidMount() {
+    this._isMounted = true;
+    this.loadWebpages(this.props.srefs);
+  }
+  componentDidUpdate(prevProps) {
+    if (!prevProps.srefs.compare(this.props.srefs)) {
+      this.loadWebpages(this.props.srefs);
+    }
+  }
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
   setFilter(filter) {
     this.props.setWebPagesFilter(filter);
+  }
+  loadWebpages(srefs) {
+    if (!srefs || !srefs.length) { return; }
+    let refsForFetch = srefs;
+    if (srefs.length === 1 && Sefaria.sectionRef(srefs[0], true) === srefs[0]) {
+      const oref = Sefaria.ref(srefs[0]);
+      if (oref) {
+        refsForFetch = Sefaria.makeSegments(oref).map(segment => segment.ref);
+      }
+    }
+    const expandedRefs = refsForFetch.reduce((accumulator, ref) => accumulator.concat(Sefaria.splitRangingRef(ref)), []);
+    const refsToLoad = Array.from(new Set(expandedRefs)).filter(ref => !Sefaria.webpagesLoaded(ref));
+    if (!refsToLoad.length) {
+      if (this._isMounted) {
+        this.setState({ isLoading: false, loadError: null });
+      }
+      return;
+    }
+    this.setState({ isLoading: true, loadError: null });
+    const loadPromises = refsToLoad.map(ref => Sefaria.webpagesApi(ref));
+    Promise.all(loadPromises)
+      .then(results => {
+        if (!this._isMounted) { return; }
+        const errorResult = results.find(result => result && result.error);
+        if (errorResult) {
+          this.setState({ isLoading: false, loadError: errorResult.error });
+          return;
+        }
+        this.setState({ isLoading: false });
+      })
+      .catch(() => {
+        if (!this._isMounted) { return; }
+        this.setState({ isLoading: false, loadError: "Unable to load web pages." });
+      });
   }
   webSitesSort(a, b) {
     // First sort by site language / interface language
@@ -913,6 +967,17 @@ class WebPagesList extends Component {
   render() {
     let webpages = Sefaria.webPagesByRef(this.props.srefs)
     let content = [];
+
+    if (this.state.isLoading && !webpages.length) {
+      return <div className="webpageList empty">
+        <LoadingMessage message="Loading web pages..." heMessage="טוען דפי אינטרנט..." />
+      </div>;
+    }
+    if (this.state.loadError && !webpages.length) {
+      return <div className="webpageList empty">
+        <LoadingMessage message={this.state.loadError} heMessage="לא ניתן לטעון דפי אינטרנט." />
+      </div>;
+    }
 
     if (!this.props.filter) {
       let sites = {};
@@ -1046,7 +1111,7 @@ const ToolsButton = ({ en, he, onClick, urlConnectionsMode = null, icon, image,
         {iconElem}
         <span className="toolsButtonText">
           {control === "interface" ? <InterfaceText text={{ en: en, he: he }} /> : <ContentText text={{ en: en, he: he }} />}
-          {count && (<span className="connectionsCount">({count})</span>)}
+          {count > 0 && (<span className="connectionsCount">({count})</span>)}
           {experiment && <span className="experimentLabel">Experiment</span>}
         </span>
         {children}
