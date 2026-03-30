@@ -253,7 +253,7 @@
         props:         {{ propsJSON|default:"null" }},
         contentLang:   "{{ request.contentLang }}",
         inReaderApp:   {% if renderStatic %}false{% else %}true{% endif %},
-        static_url:    {{ STATIC_PREFIX }},
+        static_url:    "{{ STATIC_PREFIX }}",
         module_mapping: {
 
         }
