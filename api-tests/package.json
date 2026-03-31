@@ -1,0 +1,15 @@
+{
+  "name": "sefaria-api-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive API tests for Sefaria",
+  "scripts": {
+    "test": "playwright test",
+    "test:prod": "API_BASE_URL=https://www.sefaria.org playwright test",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report ./reports/html"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
