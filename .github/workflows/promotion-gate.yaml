@@ -30,6 +30,13 @@ jobs:
         run: |
           echo "PR: $SOURCE → $TARGET"
 
+          # Guard against empty refs (e.g. merge_group event with missing head_ref)
+          if [[ -z "$SOURCE" || -z "$TARGET" ]]; then
+            echo "❌ ERROR: SOURCE or TARGET branch is empty — cannot validate promotion path."
+            echo "  SOURCE='$SOURCE' TARGET='$TARGET'"
+            exit 1
+          fi
+
           # hotfix/* branches are allowed into both preprod and prod
           if [[ "$SOURCE" == hotfix/* ]]; then
             echo "✅ $TARGET ← $SOURCE: hotfix branch allowed"
@@ -57,4 +64,8 @@ jobs:
               echo "  Expected: preprod → prod (or hotfix/* → prod)"
               exit 1
             fi
+
+          else
+            echo "❌ ERROR: Unexpected target branch '$TARGET' — gate only applies to preprod and prod."
+            exit 1
           fi

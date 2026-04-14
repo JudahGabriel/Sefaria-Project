@@ -60,7 +60,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: ./build/ci/generate-promotion-pr.sh ${{ github.event.inputs.source }} ${{ github.event.inputs.target }}
+        env:
+          SOURCE: ${{ github.event.inputs.source }}
+          TARGET: ${{ github.event.inputs.target }}
+        run: ./build/ci/generate-promotion-pr.sh "$SOURCE" "$TARGET"
 
       - name: Post to Slack (prod only)
         if: >
