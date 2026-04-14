@@ -3563,7 +3563,7 @@ def topic_ref_bulk_api(request):
 def seasonal_topic_api(request):
     from django_topics.models import SeasonalTopic
 
-    lang = request.LANGUAGE_CODE
+    lang = request.GET.get("lang")
     cb = request.GET.get("callback", None)
     diaspora = request.GET.get("diaspora", False)
 
