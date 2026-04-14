@@ -40,7 +40,7 @@ print(m.group(1) if m else 'unknown')
 " 2>/dev/null || echo "unknown")
 
 # --- Changelog: commits between branches (subject + hash only, no author name) ---
-COMMITS=$(git log "${TARGET}..${SOURCE}" --pretty=format:"%s (%h)" --no-merges 2>/dev/null || echo "")
+COMMITS=$(git log "origin/${TARGET}..origin/${SOURCE}" --pretty=format:"%s (%h)" --no-merges 2>/dev/null || echo "")
 
 if [[ -z "$COMMITS" ]]; then
   echo "No new commits between ${SOURCE} and ${TARGET}. Skipping PR creation."
