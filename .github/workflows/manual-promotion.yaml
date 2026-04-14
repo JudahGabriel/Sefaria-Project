@@ -78,27 +78,27 @@ jobs:
                 },
                 {
                   "type": "section",
-                  "text": { "type": "mrkdwn", "text": "*Summary:* ${{ steps.create_pr.outputs.ai_summary }}" }
+                  "text": { "type": "mrkdwn", "text": ${{ toJson(format('*Summary:* {0}', steps.create_pr.outputs.ai_summary)) }} }
                 },
                 {
                   "type": "section",
                   "fields": [
-                    { "type": "mrkdwn", "text": "*Commits:* ${{ steps.create_pr.outputs.total }}" },
-                    { "type": "mrkdwn", "text": "*Features:* ${{ steps.create_pr.outputs.feat_count }}" },
-                    { "type": "mrkdwn", "text": "*Fixes:* ${{ steps.create_pr.outputs.fix_count }}" },
-                    { "type": "mrkdwn", "text": "*PR:* <${{ steps.create_pr.outputs.pr_url }}|View PR>" }
+                    { "type": "mrkdwn", "text": ${{ toJson(format('*Commits:* {0}', steps.create_pr.outputs.total)) }} },
+                    { "type": "mrkdwn", "text": ${{ toJson(format('*Features:* {0}', steps.create_pr.outputs.feat_count)) }} },
+                    { "type": "mrkdwn", "text": ${{ toJson(format('*Fixes:* {0}', steps.create_pr.outputs.fix_count)) }} },
+                    { "type": "mrkdwn", "text": ${{ toJson(format('*PR:* <{0}|View PR>', steps.create_pr.outputs.pr_url)) }} }
                   ]
                 },
                 {
                   "type": "section",
                   "fields": [
-                    { "type": "mrkdwn", "text": "*Rollback to:* app=`${{ steps.create_pr.outputs.prev_app }}`, chart=`${{ steps.create_pr.outputs.prev_chart }}`" }
+                    { "type": "mrkdwn", "text": ${{ toJson(format('*Rollback to:* app=`{0}`, chart=`{1}`', steps.create_pr.outputs.prev_app, steps.create_pr.outputs.prev_chart)) }} }
                   ]
                 },
                 { "type": "divider" },
                 {
                   "type": "section",
-                  "text": { "type": "mrkdwn", "text": "_Triggered by ${{ github.actor }}_" }
+                  "text": { "type": "mrkdwn", "text": ${{ toJson(format('_Triggered by {0}_', github.actor)) }} }
                 }
               ]
             }

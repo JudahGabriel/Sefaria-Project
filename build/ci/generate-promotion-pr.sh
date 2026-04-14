@@ -15,6 +15,9 @@ SOURCE="${1:?Usage: $0 <source-branch> <target-branch>}"
 TARGET="${2:?Usage: $0 <source-branch> <target-branch>}"
 TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M UTC')
 
+# Ensure both branches are available as remote refs (checkout may not fetch all branches)
+git fetch --no-tags origin "${TARGET}" "${SOURCE}" >/dev/null 2>&1 || true
+
 # Map target branch → helmrelease env directory (matches deploy-static.yaml convention)
 case "$TARGET" in
   preprod) ENV_DIR="preprod" ;;
