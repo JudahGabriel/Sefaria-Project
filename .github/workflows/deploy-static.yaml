@@ -290,7 +290,6 @@ jobs:
       - name: Generate changelog and create PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: ./build/ci/generate-promotion-pr.sh master preprod
 
   promote-to-prod:
