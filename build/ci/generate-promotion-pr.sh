@@ -2,8 +2,12 @@
 # generate-promotion-pr.sh — Creates a promotion PR with auto-generated changelog.
 # Usage: ./build/ci/generate-promotion-pr.sh <source-branch> <target-branch>
 #
-# Requires: GH_TOKEN environment variable for gh CLI authentication.
-# Outputs (to GITHUB_OUTPUT if set): pr_url, total, feat_count, fix_count
+# Requires:
+#   GH_TOKEN           — gh CLI authentication
+#   ANTHROPIC_API_KEY  — Claude API key (optional; prod only; graceful fallback if unset)
+#
+# Outputs (to GITHUB_OUTPUT if set):
+#   pr_url, total, feat_count, fix_count, ai_summary, prev_app, prev_chart
 
 set -euo pipefail
 
@@ -11,8 +15,31 @@ SOURCE="${1:?Usage: $0 <source-branch> <target-branch>}"
 TARGET="${2:?Usage: $0 <source-branch> <target-branch>}"
 TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M UTC')
 
-# Generate changelog from commits between branches (subject + hash only, no author name
-# to avoid unsanitized user-controlled content in outputs and PR body)
+# Map target branch → helmrelease env directory (matches deploy-static.yaml convention)
+case "$TARGET" in
+  preprod) ENV_DIR="preprod" ;;
+  prod)    ENV_DIR="prod" ;;
+  *)       ENV_DIR="$TARGET" ;;
+esac
+
+# --- Rollback reference: read current versions from target branch ---
+HELMRELEASE_CONTENT=$(git show "origin/${TARGET}:envs/${ENV_DIR}/helmrelease.yaml" 2>/dev/null || echo "")
+
+PREV_APP=$(echo "$HELMRELEASE_CONTENT" | python3 -c "
+import sys, re
+t = sys.stdin.read()
+m = re.search(r'containerImage:\s*\n\s*imageRegistry:[^\n]+\n\s*tag:\s*[\"\'']?([^\"\''\s]+)[\"\'']?', t)
+print(m.group(1) if m else 'unknown')
+" 2>/dev/null || echo "unknown")
+
+PREV_CHART=$(echo "$HELMRELEASE_CONTENT" | python3 -c "
+import sys, re
+t = sys.stdin.read()
+m = re.search(r'chart: sefaria\s*\n\s*version:\s*[\"\'']?([^\"\''\s]+)[\"\'']?', t)
+print(m.group(1) if m else 'unknown')
+" 2>/dev/null || echo "unknown")
+
+# --- Changelog: commits between branches (subject + hash only, no author name) ---
 COMMITS=$(git log "${TARGET}..${SOURCE}" --pretty=format:"%s (%h)" --no-merges 2>/dev/null || echo "")
 
 if [[ -z "$COMMITS" ]]; then
@@ -22,6 +49,9 @@ if [[ -z "$COMMITS" ]]; then
     echo "total=0" >> "$GITHUB_OUTPUT"
     echo "feat_count=0" >> "$GITHUB_OUTPUT"
     echo "fix_count=0" >> "$GITHUB_OUTPUT"
+    echo "ai_summary=" >> "$GITHUB_OUTPUT"
+    echo "prev_app=${PREV_APP}" >> "$GITHUB_OUTPUT"
+    echo "prev_chart=${PREV_CHART}" >> "$GITHUB_OUTPUT"
   fi
   exit 0
 fi
@@ -30,22 +60,64 @@ FEAT_COUNT=$(echo "$COMMITS" | grep -c "^feat" || true)
 FIX_COUNT=$(echo "$COMMITS" | grep -c "^fix" || true)
 TOTAL=$(echo "$COMMITS" | grep -c . || true)
 
-# Use per-invocation temp file to avoid race conditions between concurrent jobs
+# --- Claude AI summary: prod only ---
+AI_SUMMARY=""
+if [[ "$TARGET" == "prod" && -n "${ANTHROPIC_API_KEY:-}" ]]; then
+  PROMPT_JSON=$(python3 -c "
+import json, sys
+commits = sys.stdin.read().strip()
+print(json.dumps({
+  'model': 'claude-haiku-4-5-20251001',
+  'max_tokens': 200,
+  'messages': [{
+    'role': 'user',
+    'content': 'Summarize these git commits in 2-3 sentences for a production deployment PR. Focus on user-facing changes and any risk. Be concise and direct.\n\n' + commits
+  }]
+}))" <<< "$COMMITS")
+
+  AI_SUMMARY=$(curl -sf https://api.anthropic.com/v1/messages \
+    -H "x-api-key: ${ANTHROPIC_API_KEY}" \
+    -H "anthropic-version: 2023-06-01" \
+    -H "content-type: application/json" \
+    -d "$PROMPT_JSON" \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['content'][0]['text'].replace('\n',' '))" \
+    2>/dev/null) || AI_SUMMARY="_(AI summary unavailable)_"
+fi
+
+# --- Build PR body ---
 PR_BODY=$(mktemp)
-trap 'rm -f "$PR_BODY"' EXIT
+GH_STDERR=$(mktemp)
+trap 'rm -f "$PR_BODY" "$GH_STDERR"' EXIT
 
 {
-  echo "## Promote to \`${TARGET}\`"
+  echo "## Promote \`${SOURCE}\` → \`${TARGET}\`"
   echo ""
   echo "| Field | Value |"
   echo "|-------|-------|"
-  echo "| **Source** | \`${SOURCE}\` |"
-  echo "| **Target** | \`${TARGET}\` |"
   echo "| **Date** | ${TIMESTAMP} |"
   echo "| **Total Commits** | ${TOTAL} |"
   echo "| **Features** | ${FEAT_COUNT} |"
   echo "| **Bug Fixes** | ${FIX_COUNT} |"
   echo ""
+
+  # AI summary: prod only
+  if [[ "$TARGET" == "prod" && -n "$AI_SUMMARY" ]]; then
+    echo "### AI Summary"
+    echo ""
+    echo "$AI_SUMMARY"
+    echo ""
+  fi
+
+  # Rollback reference: all targets
+  echo "### Rollback Reference"
+  echo ""
+  echo "| | Version |"
+  echo "|---|---|"
+  echo "| **Current on \`${TARGET}\`** | app=\`${PREV_APP}\`, chart=\`${PREV_CHART}\` |"
+  echo ""
+  echo "> To rollback: revert this PR or re-run the promotion workflow targeting the previous tag."
+  echo ""
+
   echo "### Changes"
   echo ""
   echo "$COMMITS" | sed 's/^/- /'
@@ -57,9 +129,6 @@ trap 'rm -f "$PR_BODY"' EXIT
 TITLE="Promote to ${TARGET} — ${TIMESTAMP}"
 
 # Capture stdout (URL) and stderr separately; distinguish "already exists" from hard failures
-GH_STDERR=$(mktemp)
-trap 'rm -f "$PR_BODY" "$GH_STDERR"' EXIT
-
 PR_URL=$(gh pr create \
   --base "${TARGET}" \
   --head "${SOURCE}" \
@@ -76,10 +145,13 @@ PR_URL=$(gh pr create \
 
 echo "PR: ${PR_URL}"
 
-# Export outputs for GitHub Actions using safe scalar values only
+# Export outputs for GitHub Actions (safe scalar values only)
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   echo "pr_url=${PR_URL}" >> "$GITHUB_OUTPUT"
   echo "total=${TOTAL}" >> "$GITHUB_OUTPUT"
   echo "feat_count=${FEAT_COUNT}" >> "$GITHUB_OUTPUT"
   echo "fix_count=${FIX_COUNT}" >> "$GITHUB_OUTPUT"
+  echo "ai_summary=${AI_SUMMARY}" >> "$GITHUB_OUTPUT"
+  echo "prev_app=${PREV_APP}" >> "$GITHUB_OUTPUT"
+  echo "prev_chart=${PREV_CHART}" >> "$GITHUB_OUTPUT"
 fi

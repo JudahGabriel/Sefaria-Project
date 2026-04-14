@@ -290,6 +290,7 @@ jobs:
       - name: Generate changelog and create PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: ./build/ci/generate-promotion-pr.sh master preprod
 
   promote-to-prod:
@@ -311,6 +312,7 @@ jobs:
         id: create_pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: ./build/ci/generate-promotion-pr.sh preprod prod
 
       - name: Post to Slack
@@ -326,11 +328,21 @@ jobs:
                 },
                 {
                   "type": "section",
+                  "text": { "type": "mrkdwn", "text": "*Summary:* ${{ steps.create_pr.outputs.ai_summary }}" }
+                },
+                {
+                  "type": "section",
                   "fields": [
                     { "type": "mrkdwn", "text": "*Commits:* ${{ steps.create_pr.outputs.total }}" },
                     { "type": "mrkdwn", "text": "*Features:* ${{ steps.create_pr.outputs.feat_count }}" },
                     { "type": "mrkdwn", "text": "*Fixes:* ${{ steps.create_pr.outputs.fix_count }}" },
                     { "type": "mrkdwn", "text": "*PR:* <${{ steps.create_pr.outputs.pr_url }}|View PR>" }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    { "type": "mrkdwn", "text": "*Rollback to:* app=`${{ steps.create_pr.outputs.prev_app }}`, chart=`${{ steps.create_pr.outputs.prev_chart }}`" }
                   ]
                 },
                 { "type": "divider" },
