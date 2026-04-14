@@ -1578,7 +1578,7 @@ def texts_api(request, tref):
         # Guard against pathologically expensive link-expansion requests.
         # e.g. /api/texts/Deuteronomy?commentary=1&pad=0 fetches every link in the book.
         if commentary and not pad and oref.is_book_level():
-            return {"error": "commentary=1 and pad=0 is not supported for whole-book refs. Request a specific section or segment.", "ref": oref.normal()}
+            return jsonResponse({"error": "commentary=1 and pad=0 is not supported for whole-book refs. Request a specific section or segment.", "ref": oref.normal()}, cb, 400)
 
         def _get_text(oref, versionEn=versionEn, versionHe=versionHe, commentary=commentary, context=context, pad=pad,
                       alts=alts, wrapLinks=wrapLinks, layer_name=layer_name):
