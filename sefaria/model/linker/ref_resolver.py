@@ -849,8 +849,7 @@ class ResolvedRefPruner:
     @staticmethod
     def non_named_part_matched_node_with_other_part_out_of_order(match: ResolvedRef) -> bool:
         """
-        Returns True if an order-enforced part within a multi-part node match has neighbors that
-        appear in a different order in the input than in the match.
+        Returns True if an order-enforced part within a multi-part RefPartsAndNodeMatch has appears in a different order in the input than in the match.
 
         Order is enforced for a part unless it is NAMED (or context) AND has more than 2 alphanumeric
         characters. NAMED/context parts with 2 or fewer word chars are treated as ambiguous and
