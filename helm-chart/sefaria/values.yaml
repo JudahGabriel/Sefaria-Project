@@ -436,6 +436,13 @@ cronJobs:
     enabled: false
   syncMongoProductionData:
     enabled: false
+    # Avoid GKE preemptible nodes (VM can be reclaimed mid-download/restore). Set nodeAffinity: {} to allow any pool.
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: cloud.google.com/gke-preemptible
+                operator: DoesNotExist
 
 localSettings:
   DEBUG: true

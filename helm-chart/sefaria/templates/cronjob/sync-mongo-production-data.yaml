@@ -19,6 +19,11 @@ spec:
             cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
         spec:
           serviceAccount: {{ .Values.restore.serviceAccount }}
+          {{- if not (empty .Values.cronJobs.syncMongoProductionData.nodeAffinity) }}
+          affinity:
+            nodeAffinity:
+              {{- toYaml .Values.cronJobs.syncMongoProductionData.nodeAffinity | nindent 14 }}
+          {{- end }}
           volumes:
             - name: shared-volume
               emptyDir: {}
