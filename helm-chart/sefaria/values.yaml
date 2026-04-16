@@ -45,6 +45,13 @@ restore:
   bucket: sefaria-mongo-backup
   # tarball:
   serviceAccount: database-backup-read
+  # Avoid GKE preemptible nodes during restore. Set nodeAffinity: {} to allow any pool.
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: cloud.google.com/gke-preemptible
+              operator: DoesNotExist
 # config to backup environment DB
 backup:
   mongo:
@@ -56,6 +63,13 @@ backup:
     archiveBucket: sefaria-mongo-archive
     serviceAccount: database-backup-write
     version: 4.4
+    # Avoid GKE preemptible nodes mid-dump. Set nodeAffinity: {} to allow any pool.
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: cloud.google.com/gke-preemptible
+                operator: DoesNotExist
   postgres:
     enabled: false
     version: 10.3

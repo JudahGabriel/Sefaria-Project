@@ -17,6 +17,11 @@ spec:
   template:
     spec:
       serviceAccount: {{ .Values.restore.serviceAccount }}
+      {{- if not (empty .Values.restore.nodeAffinity) }}
+      affinity:
+        nodeAffinity:
+          {{- toYaml .Values.restore.nodeAffinity | nindent 10 }}
+      {{- end }}
       volumes:
         - name: shared-volume
           emptyDir:
