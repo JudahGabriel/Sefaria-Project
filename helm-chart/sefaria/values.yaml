@@ -8,6 +8,16 @@ releaseImageTag:
 
 sandbox: "false"
 
+# Shared node affinity applied to all long-running mongo jobs (backup, restore, sync).
+# Prevents scheduling on preemptible GKE nodes that Google can reclaim mid-run.
+# Set to {} in environment values to allow any node pool.
+nonPreemptibleNodeAffinity:
+  requiredDuringSchedulingIgnoredDuringExecution:
+    nodeSelectorTerms:
+      - matchExpressions:
+          - key: cloud.google.com/gke-preemptible
+            operator: DoesNotExist
+
 # This value sets the name of the environment and it's associated objects. Some
 # suggestions for the values are prod/dev/test
 deployEnv: "dev"
@@ -45,13 +55,6 @@ restore:
   bucket: sefaria-mongo-backup
   # tarball:
   serviceAccount: database-backup-read
-  # Avoid GKE preemptible nodes during restore. Set nodeAffinity: {} to allow any pool.
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: cloud.google.com/gke-preemptible
-              operator: DoesNotExist
 # config to backup environment DB
 backup:
   mongo:
@@ -63,13 +66,6 @@ backup:
     archiveBucket: sefaria-mongo-archive
     serviceAccount: database-backup-write
     version: 4.4
-    # Avoid GKE preemptible nodes mid-dump. Set nodeAffinity: {} to allow any pool.
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: cloud.google.com/gke-preemptible
-                operator: DoesNotExist
   postgres:
     enabled: false
     version: 10.3
@@ -450,13 +446,6 @@ cronJobs:
     enabled: false
   syncMongoProductionData:
     enabled: false
-    # Avoid GKE preemptible nodes (VM can be reclaimed mid-download/restore). Set nodeAffinity: {} to allow any pool.
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: cloud.google.com/gke-preemptible
-                operator: DoesNotExist
 
 localSettings:
   DEBUG: true

@@ -17,11 +17,7 @@ spec:
   template:
     spec:
       serviceAccount: {{ .Values.restore.serviceAccount }}
-      {{- if not (empty .Values.restore.nodeAffinity) }}
-      affinity:
-        nodeAffinity:
-          {{- toYaml .Values.restore.nodeAffinity | nindent 10 }}
-      {{- end }}
+      {{- include "sefaria.nonPreemptibleAffinityBlock" . | nindent 6 }}
       volumes:
         - name: shared-volume
           emptyDir:
