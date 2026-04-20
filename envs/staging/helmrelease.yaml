@@ -81,6 +81,8 @@ spec:
       containerImage:
         imageRegistry: us-east1-docker.pkg.dev/production-deployment/containers/sefaria-web
         tag: "v6.89.4"
+    datadog:
+      enabled: true
     tasks:
       enabled: false
     postgres:
